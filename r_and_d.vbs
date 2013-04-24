@@ -1,3 +1,7 @@
+Const p03_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P03.xlsx"
+Const internal_orders_file_path = "c:\Users\dspirydz\Documents\ola\Internal Orders in GmbH SAP.xlsx"
+Const personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
+
 Sub r_d()
     Dim columnFormats(0 To 255) As Integer
     For i = 0 To 255
@@ -31,10 +35,7 @@ Sub r_d()
         .TextFileColumnDataTypes = columnFormats
         .Refresh
     End With
-    
-    Dim p03_path As String
-    p03_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P03.xlsx"
-    
+        
     Dim p03_file As Workbook
     If Dir(p03_file_path) = "" Then
         MsgBox "File with Italy vendors is not found, please select a file (press 'Cancel' in the next file open dialog to continue without vendors list)"
@@ -60,6 +61,37 @@ Sub r_d()
     Next person
     p03_file.Close
     
+    Dim int_orders_wb As Workbook
+    Set int_orders_wb = Workbooks.Open(internal_orders_file_path)
+    
+    Dim int_orders As New Scripting.Dictionary
+    Dim start_found As Boolean
+    start_found = False
+    For Each ord In int_orders_wb.Worksheets(1).Rows
+        If ord.Cells(1) = "Order number" Then start_found = True
+        
+        If start_found Then
+            If IsEmpty(ord.Cells(1)) Then
+                Exit For
+            Else
+                int_orders.Add CStr(ord.Cells(2)), CStr(ord.Cells(1))
+            End If
+        End If
+    Next ord
+    int_orders_wb.Close
+    
+    Dim pers_num_wb As Workbook
+    Set pers_num_wb = Workbooks.Open(personeel_nummers_file_path, 0)
+    
+    Dim pers_nums As New Scripting.Dictionary
+    For Each pn In pers_num_wb.Worksheets(1).Rows
+        If IsEmpty(pn.Cells(1)) Then
+            Exit For
+        Else
+            pers_nums.Add pn.Cells(4), pn.Cells(1)
+        End If
+    Next pn
+    
     Const NAME = 3
     Const WK_NUM = 4
     Const TOTAL_HOURS = 5
@@ -81,22 +113,34 @@ Sub r_d()
         If Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) Then
             If current_name <> "" Then
                 For Each proj In projects.Keys
-                    Dim split_name() As String
-                    split_name = Split(current_name, " ")
-                    nxt.Cells(i, 3) = split_name(UBound(split_name))
-                    For cnt = 0 To UBound(split_name) - 1
-                        nxt.Cells(i, 3) = nxt.Cells(i, 3) + ", " + split_name(ctr)
-                    Next
+                    tmp = Trim(Split(Split(proj, "-")(0), " ")(0))
+                    If Not IsNumeric(tmp) Then
+                        Dim split_name() As String
+                        split_name = Split(current_name, " ")
+                        nxt.Cells(i, 3 + 1) = split_name(UBound(split_name)) + ", "
+                        For cnt = 0 To UBound(split_name) - 1
+                            nxt.Cells(i, 3 + 1) = nxt.Cells(i, 3 + 1) + " " + split_name(cnt)
+                        Next
+                        If int_orders.Exists(tmp) Then
+                            nxt.Cells(i, 5 + 1) = int_orders(tmp)
+                        Else
+                            nxt.Cells(i, 5 + 1) = tmp
+                        End If
                     
-                    nxt.Cells(i, 5) = proj
-                    nxt.Cells(i, 6) = projects(proj)
-                    If p03.Exists(current_name) Then
-                        nxt.Cells(i, 1) = CLng(Split(p03(current_name), ",")(0))
-                        nxt.Cells(i, 4) = Split(p03(current_name), ",")(1)
-                        nxt.Cells(i, 2) = CLng(Split(p03(current_name), ",")(2))
+                        For Each k In pers_nums.Keys
+                            If k = CLng(Split(p03(current_name), ",")(2)) Then a = pers_nums(k)
+                        Next k
+                    
+                        nxt.Cells(i, 6 + 1) = projects(proj)
+                        If p03.Exists(current_name) Then
+                            nxt.Cells(i, 1 + 1) = CLng(Split(p03(current_name), ",")(0))
+                            nxt.Cells(i, 4 + 1) = Split(p03(current_name), ",")(1)
+                            nxt.Cells(i, 3) = CLng(Split(p03(current_name), ",")(2))
+                            nxt.Cells(i, 1) = CInt(a)
+                        End If
+                        
+                        i = i + 1
                     End If
-                    
-                    i = i + 1
                 Next proj
                 Set projects = Nothing
             End If
