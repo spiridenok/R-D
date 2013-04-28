@@ -1,4 +1,4 @@
-Const p03_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P03.xlsx"
+Const p03_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P03.xlsx" 'eto glavnyj fail
 Const internal_orders_file_path = "c:\Users\dspirydz\Documents\ola\Internal Orders in GmbH SAP.xlsx"
 Const personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
 
@@ -99,7 +99,7 @@ Sub r_d()
     Const PROJ_DESC = 6
     Const PROJ_HOURS = 7
     
-    i = 2
+    i = 3
     Dim current_name As String
     Dim wk_n As String
     current_name = ""
@@ -109,32 +109,34 @@ Sub r_d()
     
     Dim cnt As Integer
     
+    Const TGT_COMP_CODE = 2
+    Const TGT_COST_CENTER = 3
+    Const TGT_PERS_NO = 4
+    Const TGT_NAME = 5
+    Const TGT_ACTIVITY_TYPE = 6
+    Const TGT_PROJECT_NO = 7
+    Const TGT_ASS_HOURS = 8
+    
     For Each rw In ws.Rows
         If Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) Then
             If current_name <> "" Then
                 For Each proj In projects.Keys
                     tmp = Trim(Split(Split(proj, "-")(0), " ")(0))
                     If Not IsNumeric(tmp) Then
-                        Dim split_name() As String
-                        split_name = Split(current_name, " ")
-                        nxt.Cells(i, 4) = split_name(UBound(split_name)) + ", "
-                        For cnt = 0 To UBound(split_name) - 1
-                            nxt.Cells(i, 4) = nxt.Cells(i, 4) + " " + split_name(cnt)
-                        Next
                         If int_orders.Exists(tmp) Then
-                            nxt.Cells(i, 6) = int_orders(tmp)
+                            nxt.Cells(i, TGT_PROJECT_NO) = int_orders(tmp)
                         Else
                             'project is not found directly, try to find as a substring
-                            nxt.Cells(i, 6) = tmp
+                            nxt.Cells(i, TGT_PROJECT_NO) = tmp
                             For Each k In int_orders
                                 If InStr(1, k, tmp, vbTextCompare) > 0 Then
-                                    nxt.Cells(i, 6) = int_orders(k)
+                                    nxt.Cells(i, TGT_PROJECT_NO) = int_orders(k)
                                     Exit For
                                 Else
                                     tmp = Replace(tmp, "DATA", "")
                                     tmp = Replace(tmp, "DECT", "")
                                     If InStr(1, k, tmp, vbTextCompare) > 0 Then
-                                        nxt.Cells(i, 6) = int_orders(k)
+                                        nxt.Cells(i, TGT_PROJECT_NO) = int_orders(k)
                                         Exit For
                                     End If
                                 End If
@@ -146,26 +148,48 @@ Sub r_d()
                             p03_data = p03(current_name)
                         Else 'no exact match, search in pieces
                             For Each p03_name In p03
-                                For Each k In Split(current_name, " ")
-                                    If InStr(1, p03_name, k, vbTextCompare) > 0 Then
-                                        p03_data = p03(p03_name)
-                                        nxt.Cells(i, 4).Font.ColorIndex = 3
-                                    End If
-                                Next k
-                            If p03_data <> "" Then Exit For
+                                If DelLeft(p03_name) = DelLeft(current_name) Then
+                                    p03_data = p03(p03_name)
+                                    current_name = p03_name
+                                    nxt.Cells(i, TGT_NAME).Font.ColorIndex = 3
+                                    Exit For
+                                ElseIf Split(p03_name, " ")(0) = Split(current_name, " ")(1) Then
+                                    p03_data = p03(p03_name)
+                                    current_name = p03_name
+                                    nxt.Cells(i, TGT_NAME).Font.ColorIndex = 3
+                                    Exit For
+                                End If
                             Next p03_name
                         End If
+                        ' Just find the first name that matches. For some misterious reason
+                        ' the names in the p03 list contains also the names from the timesheet...
+'                        If p03_data = "" Then 'no exact match, search in pieces
+'                            For Each p03_name In p03
+'                                If Split(p03_name, " ")(0) = Split(current_name, " ")(0) Then
+'                                    p03_data = p03(p03_name)
+'                                    nxt.Cells(i, TGT_NAME).Font.ColorIndex = 4
+'                                    Exit For
+'                                End If
+'                            Next p03_name
+'                        End If
+                        
+                        Dim split_name() As String
+                        split_name = Split(current_name, " ")
+                        nxt.Cells(i, TGT_NAME) = split_name(UBound(split_name)) + ", "
+                        For cnt = 0 To UBound(split_name) - 1
+                            nxt.Cells(i, TGT_NAME) = nxt.Cells(i, TGT_NAME) + " " + split_name(cnt)
+                        Next
                         
                         If Len(p03_data) > 0 Then 'p03_data Is Not Nothing Then
                             For Each k In pers_nums.Keys
                                 If k = CLng(Split(p03_data, ",")(2)) Then a = pers_nums(k)
                             Next k
                         
-                            nxt.Cells(i, 7) = projects(proj)
-                            nxt.Cells(i, 2) = CLng(Split(p03_data, ",")(0))
-                            nxt.Cells(i, 5) = Split(p03_data, ",")(1)
-                            nxt.Cells(i, 3) = CLng(Split(p03_data, ",")(2))
-                            nxt.Cells(i, 1) = a
+                            nxt.Cells(i, TGT_ASS_HOURS) = projects(proj)
+                            nxt.Cells(i, TGT_COST_CENTER) = CLng(Split(p03_data, ",")(0))
+                            nxt.Cells(i, TGT_ACTIVITY_TYPE) = Split(p03_data, ",")(1)
+                            nxt.Cells(i, TGT_PERS_NO) = CLng(Split(p03_data, ",")(2))
+                            nxt.Cells(i, TGT_COMP_CODE) = a
                         End If
                         
                         i = i + 1
@@ -208,3 +232,14 @@ Sub r_d()
     
             
 End Sub
+
+Function DelLeft(ByVal str As String) As String
+ Dim l As Long, d As Long
+ l = Len(str)
+ d = InStr(1, str, " ")
+ If Not d = 0 Then
+    DelLeft = Right(str, l - d)
+ Else
+    DelLeft = str
+End If
+ End Function
