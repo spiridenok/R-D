@@ -128,15 +128,18 @@ Sub r_d()
                         End If
                     
                         For Each k In pers_nums.Keys
-                            If k = CLng(Split(p03(current_name), ",")(2)) Then a = pers_nums(k)
+                            If Not IsEmpty(p03(current_name)) Then
+                                If k = CLng(Split(p03(current_name), ",")(2)) Then a = pers_nums(k)
+                            End If
                         Next k
                     
                         nxt.Cells(i, 6 + 1) = projects(proj)
-                        If p03.Exists(current_name) Then
+                        If p03.Exists(current_name) And Not IsEmpty(p03(current_name)) Then
                             nxt.Cells(i, 1 + 1) = CLng(Split(p03(current_name), ",")(0))
                             nxt.Cells(i, 4 + 1) = Split(p03(current_name), ",")(1)
                             nxt.Cells(i, 3) = CLng(Split(p03(current_name), ",")(2))
-                            nxt.Cells(i, 1) = CInt(a)
+                            k = Split(p03(current_name), ",")(2)
+                            nxt.Cells(i, 1) = a
                         End If
                         
                         i = i + 1
@@ -148,7 +151,7 @@ Sub r_d()
         End If
         
         If current_name <> "" Then
-'            If Not IsEmpty(rw.Cells(WK_NUM)) And IsEmpty(ws.Rows.Cells(rw.Row + 1, WK_NUM)) And IsEmpty(ws.Rows.Cells(rw.Row + 1, NAME)) Then
+'            If Not IsEmpty(rw.Cells(WK_NUM)) And `(ws.Rows.Cells(rw.Row + 1, WK_NUM)) And IsEmpty(ws.Rows.Cells(rw.Row + 1, NAME)) Then
 '                wk_n = rw.Cells(WK_NUM)
 '                nxt.Cells(i, 2) = wk_n
 '                i = i + 1
@@ -173,5 +176,9 @@ Sub r_d()
         'just to limit the max amount of records to speed up the process
         If rw.Row > 10000 Then Exit For
     Next rw
+            
+    ActiveWindow.Close savechanges:=False 'close pers numbers
+    ActiveWindow.Close savechanges:=False 'close book*
     
+            
 End Sub
