@@ -117,28 +117,54 @@ Sub r_d()
                     If Not IsNumeric(tmp) Then
                         Dim split_name() As String
                         split_name = Split(current_name, " ")
-                        nxt.Cells(i, 3 + 1) = split_name(UBound(split_name)) + ", "
+                        nxt.Cells(i, 4) = split_name(UBound(split_name)) + ", "
                         For cnt = 0 To UBound(split_name) - 1
-                            nxt.Cells(i, 3 + 1) = nxt.Cells(i, 3 + 1) + " " + split_name(cnt)
+                            nxt.Cells(i, 4) = nxt.Cells(i, 4) + " " + split_name(cnt)
                         Next
                         If int_orders.Exists(tmp) Then
-                            nxt.Cells(i, 5 + 1) = int_orders(tmp)
+                            nxt.Cells(i, 6) = int_orders(tmp)
                         Else
-                            nxt.Cells(i, 5 + 1) = tmp
+                            'project is not found directly, try to find as a substring
+                            nxt.Cells(i, 6) = tmp
+                            For Each k In int_orders
+                                If InStr(1, k, tmp, vbTextCompare) > 0 Then
+                                    nxt.Cells(i, 6) = int_orders(k)
+                                    Exit For
+                                Else
+                                    tmp = Replace(tmp, "DATA", "")
+                                    tmp = Replace(tmp, "DECT", "")
+                                    If InStr(1, k, tmp, vbTextCompare) > 0 Then
+                                        nxt.Cells(i, 6) = int_orders(k)
+                                        Exit For
+                                    End If
+                                End If
+                            Next k
                         End If
                     
-                        For Each k In pers_nums.Keys
-                            If Not IsEmpty(p03(current_name)) Then
-                                If k = CLng(Split(p03(current_name), ",")(2)) Then a = pers_nums(k)
-                            End If
-                        Next k
-                    
-                        nxt.Cells(i, 6 + 1) = projects(proj)
+                        p03_data = ""
                         If p03.Exists(current_name) And Not IsEmpty(p03(current_name)) Then
-                            nxt.Cells(i, 1 + 1) = CLng(Split(p03(current_name), ",")(0))
-                            nxt.Cells(i, 4 + 1) = Split(p03(current_name), ",")(1)
-                            nxt.Cells(i, 3) = CLng(Split(p03(current_name), ",")(2))
-                            k = Split(p03(current_name), ",")(2)
+                            p03_data = p03(current_name)
+                        Else 'no exact match, search in pieces
+                            For Each p03_name In p03
+                                For Each k In Split(current_name, " ")
+                                    If InStr(1, p03_name, k, vbTextCompare) > 0 Then
+                                        p03_data = p03(p03_name)
+                                        nxt.Cells(i, 4).Font.ColorIndex = 3
+                                    End If
+                                Next k
+                            If p03_data <> "" Then Exit For
+                            Next p03_name
+                        End If
+                        
+                        If Len(p03_data) > 0 Then 'p03_data Is Not Nothing Then
+                            For Each k In pers_nums.Keys
+                                If k = CLng(Split(p03_data, ",")(2)) Then a = pers_nums(k)
+                            Next k
+                        
+                            nxt.Cells(i, 7) = projects(proj)
+                            nxt.Cells(i, 2) = CLng(Split(p03_data, ",")(0))
+                            nxt.Cells(i, 5) = Split(p03_data, ",")(1)
+                            nxt.Cells(i, 3) = CLng(Split(p03_data, ",")(2))
                             nxt.Cells(i, 1) = a
                         End If
                         
