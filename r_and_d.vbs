@@ -17,7 +17,7 @@ Sub r_d()
                 
     Dim pp_file As Workbook
     If Dir(pp_file_path) = "" Then
-        MsgBox "P0x file is not found. Makes no sence to continue, stop executing macro..."
+        MsgBox "Pxx file is not found. Makes no sence to continue, stop executing macro..."
         'file_path = pick_file("Select Italy Vendors")
         Exit Sub
         If file_path <> "" Then
@@ -56,6 +56,8 @@ Sub r_d()
             tmp = tmp + person.Cells(3) + " "
         End If
         tmp = tmp + person.Cells(1)
+        ' Add cost center, activity type (role) and employee number (in this particular order)
+        ' TODO: this should be a new object of my own type
         If Trim(tmp) <> "" Then pp.Add tmp, CStr(person.Cells(4)) + "," + person.Cells(7) + "," + CStr(person.Cells(5))
         If person.Row > 1000 Then Exit For
     Next person
@@ -97,6 +99,7 @@ Sub r_d()
                 pers_nums.Add pn.Cells(4), pn.Cells(1)
             End If
         Next pn
+        'For some reason no need to close this - it will close another already opened worksheet.
         'pers_nums_wb.Close
     End If
     
@@ -107,6 +110,7 @@ Sub r_d()
     Const PROJ_DESC = 6
     Const PROJ_HOURS = 7
     
+    ' 1st row is empty, 2nd contains header
     i = 3
     Dim current_name As String
     Dim wk_n As String
@@ -115,7 +119,7 @@ Sub r_d()
     Dim names As New Scripting.Dictionary
     Dim projects As New Scripting.Dictionary
     
-    Dim cnt As Integer
+    'Dim cnt As Integer
     
     Const TGT_COMP_CODE = 2
     Const TGT_COST_CENTER = 3
@@ -261,7 +265,7 @@ Sub SaveRawData()
         
         Set ThisWksht = ActiveSheet
         Set NewWkbk = Workbooks.Add
-
+        
         ThisWksht.Range("A1:H1000").Copy NewWkbk.Sheets(1).Range("A1")
         NewWkbk.Sheets(1).Range("A1:H1000").Select
         Selection.Columns.AutoFit
