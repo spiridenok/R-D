@@ -117,6 +117,9 @@ Sub r_d()
     Const TGT_PROJECT_NO = 7
     Const TGT_ASS_HOURS = 8
     
+    nxt.Range("b3", "h1000").ClearContents
+    nxt.Range("b3", "h1000").Font.ColorIndex = 1
+    
     For Each rw In ws.Rows
         If Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) Then
             If current_name <> "" Then
@@ -144,7 +147,7 @@ Sub r_d()
                         End If
                     
                         p03_data = ""
-                        If p03.Exists(current_name) And Not IsEmpty(p03(current_name)) Then
+                        If p03.Exists(current_name) Then 'And Not IsEmpty(p03(current_name)) Then
                             p03_data = p03(current_name)
                         Else 'no exact match, search in pieces
                             For Each p03_name In p03
@@ -161,17 +164,12 @@ Sub r_d()
                                 End If
                             Next p03_name
                         End If
-                        ' Just find the first name that matches. For some misterious reason
-                        ' the names in the p03 list contains also the names from the timesheet...
-'                        If p03_data = "" Then 'no exact match, search in pieces
-'                            For Each p03_name In p03
-'                                If Split(p03_name, " ")(0) = Split(current_name, " ")(0) Then
-'                                    p03_data = p03(p03_name)
-'                                    nxt.Cells(i, TGT_NAME).Font.ColorIndex = 4
-'                                    Exit For
-'                                End If
-'                            Next p03_name
-'                        End If
+                        ' Just find the first name that matches.
+                        If p03_data = "" Then 'no exact match, search the closest name
+                            current_name = strSimLookup(current_name, p03.Keys, 0)
+                            p03_data = p03(current_name)
+                            nxt.Cells(i, TGT_NAME).Font.ColorIndex = 4
+                        End If
                         
                         Dim split_name() As String
                         split_name = Split(current_name, " ")
