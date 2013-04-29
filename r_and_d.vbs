@@ -1,4 +1,4 @@
-Const p03_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P03.xlsx" 'eto glavnyj fail
+Const pp_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P03.xlsx" 'eto glavnyj fail
 Const internal_orders_file_path = "c:\Users\dspirydz\Documents\ola\Internal Orders in GmbH SAP.xlsx"
 Const personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
 
@@ -14,12 +14,24 @@ Sub r_d()
     If (filename = False) Then
         Exit Sub
     End If
-        
+                
+    Dim pp_file As Workbook
+    If Dir(pp_file_path) = "" Then
+        MsgBox "P0x file is not found. Makes no sence to continue, stop executing macro..."
+        'file_path = pick_file("Select Italy Vendors")
+        Exit Sub
+        If file_path <> "" Then
+            Set vendors_file = Workbooks.Open(file_path)
+        End If
+    Else
+        Set pp_file = Workbooks.Open(pp_file_path)
+    End If
+    
     Dim ws As Excel.Worksheet
-    Dim nxt As Worksheet
     Application.Workbooks.Add
     Set ws = Excel.ActiveSheet
-    Set nxt = ThisWorkbook.Worksheets(2)
+    Dim nxt As Worksheet
+    Set nxt = ThisWorkbook.Worksheets(1)
     Application.DisplayAlerts = False
     Sheets("Sheet3").Delete
     Application.DisplayAlerts = True
@@ -35,62 +47,58 @@ Sub r_d()
         .TextFileColumnDataTypes = columnFormats
         .Refresh
     End With
-        
-    Dim p03_file As Workbook
-    If Dir(p03_file_path) = "" Then
-        MsgBox "File with Italy vendors is not found, please select a file (press 'Cancel' in the next file open dialog to continue without vendors list)"
-        'file_path = pick_file("Select Italy Vendors")
-
-        If file_path <> "" Then
-            Set vendors_file = Workbooks.Open(file_path)
-        End If
-    Else
-        Set p03_file = Workbooks.Open(p03_file_path)
-    End If
     
-    Dim p03 As New Scripting.Dictionary
-    For Each person In p03_file.Worksheets(1).Rows
+    Dim pp As New Scripting.Dictionary
+    For Each person In pp_file.Worksheets(1).Rows
         Dim tmp As String
         tmp = person.Cells(2) + " "
         If Not IsEmpty(person.Cells(3)) Then
             tmp = tmp + person.Cells(3) + " "
         End If
         tmp = tmp + person.Cells(1)
-        If Trim(tmp) <> "" Then p03.Add tmp, CStr(person.Cells(4)) + "," + person.Cells(7) + "," + CStr(person.Cells(5))
+        If Trim(tmp) <> "" Then pp.Add tmp, CStr(person.Cells(4)) + "," + person.Cells(7) + "," + CStr(person.Cells(5))
         If person.Row > 1000 Then Exit For
     Next person
-    p03_file.Close
-    
-    Dim int_orders_wb As Workbook
-    Set int_orders_wb = Workbooks.Open(internal_orders_file_path)
+    pp_file.Close
     
     Dim int_orders As New Scripting.Dictionary
-    Dim start_found As Boolean
-    start_found = False
-    For Each ord In int_orders_wb.Worksheets(1).Rows
-        If ord.Cells(1) = "Order number" Then start_found = True
-        
-        If start_found Then
-            If IsEmpty(ord.Cells(1)) Then
-                Exit For
-            Else
-                int_orders.Add CStr(ord.Cells(2)), CStr(ord.Cells(1))
+    If Dir(internal_orders_file_path) = "" Then
+        MsgBox "File with internal order numbers is not found! Original orders will not be converted!"
+        Set int_orders = Nothing
+    Else
+        Dim int_orders_wb As Workbook
+        Set int_orders_wb = Workbooks.Open(internal_orders_file_path, 0)
+        Dim start_found As Boolean
+        start_found = False
+        For Each ord In int_orders_wb.Worksheets(1).Rows
+            If ord.Cells(1) = "Order number" Then start_found = True
+            If start_found Then
+                If IsEmpty(ord.Cells(1)) Then
+                    Exit For
+                Else
+                    int_orders.Add CStr(ord.Cells(2)), CStr(ord.Cells(1))
+                End If
             End If
-        End If
-    Next ord
-    int_orders_wb.Close
-    
-    Dim pers_num_wb As Workbook
-    Set pers_num_wb = Workbooks.Open(personeel_nummers_file_path, 0)
+        Next ord
+        int_orders_wb.Close
+    End If
     
     Dim pers_nums As New Scripting.Dictionary
-    For Each pn In pers_num_wb.Worksheets(1).Rows
-        If IsEmpty(pn.Cells(1)) Then
-            Exit For
-        Else
-            pers_nums.Add pn.Cells(4), pn.Cells(1)
-        End If
-    Next pn
+    If Dir(personeel_nummers_file_path) = "" Then
+        MsgBox "File with personeelsnummers is not found! Company code will not be filled in!"
+        Set pers_nums = Nothing
+    Else
+        Dim pers_nums_wb As Workbook
+        Set pers_nums_wb = Workbooks.Open(personeel_nummers_file_path, 0)
+        For Each pn In pers_nums_wb.Worksheets(1).Rows
+            If IsEmpty(pn.Cells(1)) Then
+                Exit For
+            Else
+                pers_nums.Add pn.Cells(4), pn.Cells(1)
+            End If
+        Next pn
+        'pers_nums_wb.Close
+    End If
     
     Const NAME = 3
     Const WK_NUM = 4
@@ -146,28 +154,28 @@ Sub r_d()
                             Next k
                         End If
                     
-                        p03_data = ""
-                        If p03.Exists(current_name) Then 'And Not IsEmpty(p03(current_name)) Then
-                            p03_data = p03(current_name)
+                        pp_data = ""
+                        If pp.Exists(current_name) Then 'And Not IsEmpty(pp(current_name)) Then
+                            pp_data = pp(current_name)
                         Else 'no exact match, search in pieces
-                            For Each p03_name In p03
-                                If DelLeft(p03_name) = DelLeft(current_name) Then
-                                    p03_data = p03(p03_name)
-                                    current_name = p03_name
+                            For Each pp_name In pp
+                                If DelLeft(pp_name) = DelLeft(current_name) Then
+                                    pp_data = pp(pp_name)
+                                    current_name = pp_name
                                     nxt.Cells(i, TGT_NAME).Font.ColorIndex = 3
                                     Exit For
-                                ElseIf Split(p03_name, " ")(0) = Split(current_name, " ")(1) Then
-                                    p03_data = p03(p03_name)
-                                    current_name = p03_name
+                                ElseIf Split(pp_name, " ")(0) = Split(current_name, " ")(1) Then
+                                    pp_data = pp(pp_name)
+                                    current_name = pp_name
                                     nxt.Cells(i, TGT_NAME).Font.ColorIndex = 3
                                     Exit For
                                 End If
-                            Next p03_name
+                            Next pp_name
                         End If
                         ' Just find the first name that matches.
-                        If p03_data = "" Then 'no exact match, search the closest name
-                            current_name = strSimLookup(current_name, p03.Keys, 0)
-                            p03_data = p03(current_name)
+                        If pp_data = "" Then 'no exact match, search the closest name
+                            current_name = strSimLookup(current_name, pp.Keys, 0)
+                            pp_data = pp(current_name)
                             nxt.Cells(i, TGT_NAME).Font.ColorIndex = 4
                         End If
                         
@@ -178,15 +186,19 @@ Sub r_d()
                             nxt.Cells(i, TGT_NAME) = nxt.Cells(i, TGT_NAME) + " " + split_name(cnt)
                         Next
                         
-                        If Len(p03_data) > 0 Then 'p03_data Is Not Nothing Then
-                            For Each k In pers_nums.Keys
-                                If k = CLng(Split(p03_data, ",")(2)) Then a = pers_nums(k)
-                            Next k
+                        If Len(pp_data) > 0 Then
+                            If pers_nums Is Nothing Then
+                                a = ""
+                            Else
+                                For Each k In pers_nums.Keys
+                                    If k = CLng(Split(pp_data, ",")(2)) Then a = pers_nums(k)
+                                Next k
+                            End If
                         
                             nxt.Cells(i, TGT_ASS_HOURS) = projects(proj)
-                            nxt.Cells(i, TGT_COST_CENTER) = CLng(Split(p03_data, ",")(0))
-                            nxt.Cells(i, TGT_ACTIVITY_TYPE) = Split(p03_data, ",")(1)
-                            nxt.Cells(i, TGT_PERS_NO) = CLng(Split(p03_data, ",")(2))
+                            nxt.Cells(i, TGT_COST_CENTER) = CLng(Split(pp_data, ",")(0))
+                            nxt.Cells(i, TGT_ACTIVITY_TYPE) = Split(pp_data, ",")(1)
+                            nxt.Cells(i, TGT_PERS_NO) = CLng(Split(pp_data, ",")(2))
                             nxt.Cells(i, TGT_COMP_CODE) = a
                         End If
                         
@@ -227,7 +239,6 @@ Sub r_d()
             
     ActiveWindow.Close savechanges:=False 'close pers numbers
     ActiveWindow.Close savechanges:=False 'close book*
-    
             
 End Sub
 
@@ -241,3 +252,25 @@ Function DelLeft(ByVal str As String) As String
     DelLeft = str
 End If
  End Function
+
+Sub SaveRawData()
+    filesavename = Application.GetSaveAsFilename(fileFilter:="xlsx Files (*.xlsx), *.xlsx")
+    
+    If filesavename <> False Then
+        Dim ThisWksht As Worksheet
+        
+        Set ThisWksht = ActiveSheet
+        Set NewWkbk = Workbooks.Add
+
+        ThisWksht.Range("A1:H1000").Copy NewWkbk.Sheets(1).Range("A1")
+        NewWkbk.Sheets(1).Range("A1:H1000").Select
+        Selection.Columns.AutoFit
+        Cells(1, 1).Select
+        
+        NewWkbk.SaveAs filename:=filesavename, FileFormat:=xlOpenXMLWorkbook
+        If Err.Number = 1004 Then
+            NewWkbk.Close
+            MsgBox "File Name Not Valid " & filesavename & " Nothing is saved. Exiting."
+        End If
+    End If
+ End Sub
