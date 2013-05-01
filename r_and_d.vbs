@@ -1,6 +1,10 @@
-Const pp_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P03.xlsx" 'eto glavnyj fail
-Const internal_orders_file_path = "c:\Users\dspirydz\Documents\ola\Internal Orders in GmbH SAP.xlsx"
-Const personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
+'Const pp_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P04.xlsx" 'eto glavnyj fail
+'Const internal_orders_file_path = "c:\Users\dspirydz\Documents\ola\Internal Orders in GmbH SAP.xlsx"
+'Const personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
+
+Const pp_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Employees in R&D\2013 - P04.xlsx"
+Const internal_orders_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\Internal Orders\Internal Orders in GmbH SAP.xlsx"
+Const personeel_nummers_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Definitieve R&D\P01\Personeelsnummers 2013 01 25.xlsx"
 
 Sub r_d()
     Dim columnFormats(0 To 255) As Integer
@@ -18,7 +22,6 @@ Sub r_d()
     Dim pp_file As Workbook
     If Dir(pp_file_path) = "" Then
         MsgBox "Pxx file is not found. Makes no sence to continue, stop executing macro..."
-        'file_path = pick_file("Select Italy Vendors")
         Exit Sub
         If file_path <> "" Then
             Set vendors_file = Workbooks.Open(file_path)
@@ -103,6 +106,8 @@ Sub r_d()
         'pers_nums_wb.Close
     End If
     
+    Const YEAR = 1
+    Const COST_CENTER = 2
     Const NAME = 3
     Const WK_NUM = 4
     Const TOTAL_HOURS = 5
@@ -134,32 +139,41 @@ Sub r_d()
     
     Dim conv As ConversionsSheet
     Set conv = New ConversionsSheet
+    Dim right_cost_center
+    right_cost_center = False
     
     For Each rw In ws.Rows
-        If Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) Then
+        If Not IsEmpty(rw.Cells(COST_CENTER)) Then
             If current_name <> "" Then
                 For Each proj In projects.Keys
                     tmp = Trim(Split(Split(proj, "-")(0), " ")(0))
+                    Dim project_found As Boolean
+                    project_found = False
                     If Not IsNumeric(tmp) Then
                         If int_orders.Exists(tmp) Then
                             nxt.Cells(i, TGT_PROJECT_NO) = int_orders(tmp)
+                            project_found = True
                         Else
                             'project is not found directly, try to find as a substring
                             nxt.Cells(i, TGT_PROJECT_NO) = tmp
                             For Each k In int_orders
                                 If InStr(1, k, tmp, vbTextCompare) > 0 Then
                                     nxt.Cells(i, TGT_PROJECT_NO) = int_orders(k)
+                                    project_found = True
                                     Exit For
                                 Else
                                     tmp = Replace(tmp, "DATA", "")
                                     tmp = Replace(tmp, "DECT", "")
                                     If InStr(1, k, tmp, vbTextCompare) > 0 Then
                                         nxt.Cells(i, TGT_PROJECT_NO) = int_orders(k)
+                                        project_found = True
                                         Exit For
                                     End If
                                 End If
                             Next k
                         End If
+                        
+                        If Not project_found Then nxt.Cells(i, TGT_PROJECT_NO).Font.ColorIndex = 3
                     
                         pp_data = ""
                         If pp.Exists(current_name) Then 'And Not IsEmpty(pp(current_name)) Then
@@ -217,23 +231,114 @@ Sub r_d()
                         i = i + 1
                     End If
                 Next proj
-                Set projects = Nothing
             End If
+            current_name = ""
+            cost_center_num = Split(rw.Cells(COST_CENTER), ":")
+            If UBound(cost_center_num) > 0 Then
+                cost_center_num = Trim(cost_center_num(1))
+                ' empty cost center is a workaround for employees that are added later
+                If cost_center_num = "" Or cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002" Then
+'                If cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002" Then
+                    right_cost_center = True
+                Else
+                    right_cost_center = False
+                End If
+            End If
+        ElseIf Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) And right_cost_center Then
+            If current_name <> "" Then
+                For Each proj In projects.Keys
+                    tmp = Trim(Split(Split(proj, "-")(0), " ")(0))
+                    project_found = False
+                    If Not IsNumeric(tmp) Then
+                        If int_orders.Exists(tmp) Then
+                            nxt.Cells(i, TGT_PROJECT_NO) = int_orders(tmp)
+                            project_found = True
+                        Else
+                            'project is not found directly, try to find as a substring
+                            nxt.Cells(i, TGT_PROJECT_NO) = tmp
+                            For Each k In int_orders
+                                If InStr(1, k, tmp, vbTextCompare) > 0 Then
+                                    nxt.Cells(i, TGT_PROJECT_NO) = int_orders(k)
+                                    project_found = True
+                                    Exit For
+                                Else
+                                    tmp = Replace(tmp, "DATA", "")
+                                    tmp = Replace(tmp, "DECT", "")
+                                    If InStr(1, k, tmp, vbTextCompare) > 0 Then
+                                        nxt.Cells(i, TGT_PROJECT_NO) = int_orders(k)
+                                        project_found = True
+                                        Exit For
+                                    End If
+                                End If
+                            Next k
+                        End If
+                        
+                        If Not project_found Then nxt.Cells(i, TGT_PROJECT_NO).Font.ColorIndex = 3
+                    
+                        pp_data = ""
+                        If pp.Exists(current_name) Then 'And Not IsEmpty(pp(current_name)) Then
+                            pp_data = pp(current_name)
+                        Else 'no exact match, search in pieces
+                            For Each pp_name In pp
+                                If GetSurname(pp_name) = GetSurname(current_name) Then
+                                    conv.add current_name, pp_name
+                                    pp_data = pp(pp_name)
+                                    current_name = pp_name
+                                    nxt.Cells(i, TGT_NAME).Font.ColorIndex = 3
+                                    Exit For
+                                ElseIf Split(pp_name, " ")(0) = Split(current_name, " ")(1) Then
+                                    conv.add current_name, pp_name
+                                    pp_data = pp(pp_name)
+                                    current_name = pp_name
+                                    nxt.Cells(i, TGT_NAME).Font.ColorIndex = 3
+                                    Exit For
+                                End If
+                            Next pp_name
+                        End If
+                        ' Just find the first name that matches.
+                        If pp_data = "" Then 'no exact match, search the closest name
+                            'Dim org_name As String
+                            org_name = current_name
+                            current_name = strSimLookup(current_name, pp.Keys, 0)
+                            conv.add org_name, current_name
+                            pp_data = pp(current_name)
+                            nxt.Cells(i, TGT_NAME).Font.ColorIndex = 4
+                        End If
+                        
+                        'Dim split_name() As String
+                        split_name = Split(current_name, " ")
+                        nxt.Cells(i, TGT_NAME) = split_name(UBound(split_name)) + ", "
+                        For cnt = 0 To UBound(split_name) - 1
+                            nxt.Cells(i, TGT_NAME) = nxt.Cells(i, TGT_NAME) + " " + split_name(cnt)
+                        Next
+                        
+                        If Len(pp_data) > 0 Then
+                            If pers_nums Is Nothing Then
+                                a = ""
+                            Else
+                                For Each k In pers_nums.Keys
+                                    If k = CLng(Split(pp_data, ",")(2)) Then a = pers_nums(k)
+                                Next k
+                            End If
+                        
+                            nxt.Cells(i, TGT_ASS_HOURS) = projects(proj)
+                            nxt.Cells(i, TGT_COST_CENTER) = CLng(Split(pp_data, ",")(0))
+                            nxt.Cells(i, TGT_ACTIVITY_TYPE) = Split(pp_data, ",")(1)
+                            nxt.Cells(i, TGT_PERS_NO) = CLng(Split(pp_data, ",")(2))
+                            nxt.Cells(i, TGT_COMP_CODE) = a
+                        End If
+                        
+                        i = i + 1
+                    End If
+                Next proj
+            End If
+            Set projects = Nothing
             current_name = rw.Cells(NAME)
         End If
         
         If current_name <> "" Then
-'            If Not IsEmpty(rw.Cells(WK_NUM)) And `(ws.Rows.Cells(rw.Row + 1, WK_NUM)) And IsEmpty(ws.Rows.Cells(rw.Row + 1, NAME)) Then
-'                wk_n = rw.Cells(WK_NUM)
-'                nxt.Cells(i, 2) = wk_n
-'                i = i + 1
-'            Else
-'                If Not IsEmpty(rw.Cells(PROJ_NUM)) And Not IsEmpty(rw.Cells(PROJ_HOURS)) Then
-'                End If
-'            End If
             If Not IsEmpty(rw.Cells(PROJ_NUM)) And Not IsEmpty(rw.Cells(PROJ_HOURS)) Then
                 Dim h As Integer
-                'Dim proj As String
                 
                 h = CInt(rw.Cells(PROJ_HOURS))
                 proj = rw.Cells(PROJ_NUM)
@@ -246,7 +351,7 @@ Sub r_d()
         End If
         
         'just to limit the max amount of records to speed up the process
-        If rw.Row > 10000 Then Exit For
+        If rw.Cells(YEAR) = "2012" Then Exit For
     Next rw
             
     ActiveWindow.Close savechanges:=False 'close pers numbers
