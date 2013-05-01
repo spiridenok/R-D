@@ -1,0 +1,15 @@
+Private row_num As Integer
+Private sheet As Worksheet
+
+Public Sub add(org_name As String, converted_name As Variant)
+    bla = org_name + CStr(row_num) + CStr(converted_name)
+    sheet.Cells(row_num, 1) = org_name
+    sheet.Cells(row_num, 2) = converted_name
+    row_num = row_num + 1
+End Sub
+
+Private Sub Class_Initialize()
+    Set sheet = ThisWorkbook.Worksheets(2)
+    sheet.Range("a2,b100").ClearContents
+    row_num = 2 ' first row contains a header
+End Sub
