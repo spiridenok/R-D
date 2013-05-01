@@ -28,7 +28,7 @@ Sub r_d()
     End If
     
     Dim ws As Excel.Worksheet
-    Application.Workbooks.Add
+    Application.Workbooks.add
     Set ws = Excel.ActiveSheet
     Dim nxt As Worksheet
     Set nxt = ThisWorkbook.Worksheets(1)
@@ -36,7 +36,7 @@ Sub r_d()
     Sheets("Sheet3").Delete
     Application.DisplayAlerts = True
 
-    With ws.QueryTables.Add("TEXT;" & filename, ws.Cells(1, 1))
+    With ws.QueryTables.add("TEXT;" & filename, ws.Cells(1, 1))
         .FieldNames = True
         .AdjustColumnWidth = True
         .TextFileParseType = xlDelimited
@@ -58,7 +58,7 @@ Sub r_d()
         tmp = tmp + person.Cells(1)
         ' Add cost center, activity type (role) and employee number (in this particular order)
         ' TODO: this should be a new object of my own type
-        If Trim(tmp) <> "" Then pp.Add tmp, CStr(person.Cells(4)) + "," + person.Cells(7) + "," + CStr(person.Cells(5))
+        If Trim(tmp) <> "" Then pp.add tmp, CStr(person.Cells(4)) + "," + person.Cells(7) + "," + CStr(person.Cells(5))
         If person.Row > 1000 Then Exit For
     Next person
     pp_file.Close
@@ -78,7 +78,7 @@ Sub r_d()
                 If IsEmpty(ord.Cells(1)) Then
                     Exit For
                 Else
-                    int_orders.Add CStr(ord.Cells(2)), CStr(ord.Cells(1))
+                    int_orders.add CStr(ord.Cells(2)), CStr(ord.Cells(1))
                 End If
             End If
         Next ord
@@ -96,7 +96,7 @@ Sub r_d()
             If IsEmpty(pn.Cells(1)) Then
                 Exit For
             Else
-                pers_nums.Add pn.Cells(4), pn.Cells(1)
+                pers_nums.add pn.Cells(4), pn.Cells(1)
             End If
         Next pn
         'For some reason no need to close this - it will close another already opened worksheet.
@@ -110,7 +110,7 @@ Sub r_d()
     Const PROJ_DESC = 6
     Const PROJ_HOURS = 7
     
-    ' 1st row is empty, 2nd contains header
+    ' 1st row is empty, 2nd contains the header
     i = 3
     Dim current_name As String
     Dim wk_n As String
@@ -131,6 +131,9 @@ Sub r_d()
     
     nxt.Range("b3", "h1000").ClearContents
     nxt.Range("b3", "h1000").Font.ColorIndex = 1
+    
+    Dim conv As ConversionsSheet
+    Set conv = New ConversionsSheet
     
     For Each rw In ws.Rows
         If Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) Then
@@ -163,12 +166,14 @@ Sub r_d()
                             pp_data = pp(current_name)
                         Else 'no exact match, search in pieces
                             For Each pp_name In pp
-                                If DelLeft(pp_name) = DelLeft(current_name) Then
+                                If GetSurname(pp_name) = GetSurname(current_name) Then
+                                    conv.add current_name, pp_name
                                     pp_data = pp(pp_name)
                                     current_name = pp_name
                                     nxt.Cells(i, TGT_NAME).Font.ColorIndex = 3
                                     Exit For
                                 ElseIf Split(pp_name, " ")(0) = Split(current_name, " ")(1) Then
+                                    conv.add current_name, pp_name
                                     pp_data = pp(pp_name)
                                     current_name = pp_name
                                     nxt.Cells(i, TGT_NAME).Font.ColorIndex = 3
@@ -178,7 +183,10 @@ Sub r_d()
                         End If
                         ' Just find the first name that matches.
                         If pp_data = "" Then 'no exact match, search the closest name
+                            Dim org_name As String
+                            org_name = current_name
                             current_name = strSimLookup(current_name, pp.Keys, 0)
+                            conv.add org_name, current_name
                             pp_data = pp(current_name)
                             nxt.Cells(i, TGT_NAME).Font.ColorIndex = 4
                         End If
@@ -230,7 +238,7 @@ Sub r_d()
                 h = CInt(rw.Cells(PROJ_HOURS))
                 proj = rw.Cells(PROJ_NUM)
                 If Not projects.Exists(proj) Then
-                    projects.Add proj, h
+                    projects.add proj, h
                 Else
                     projects(proj) = projects(proj) + h
                 End If
@@ -246,14 +254,13 @@ Sub r_d()
             
 End Sub
 
-Function DelLeft(ByVal str As String) As String
- Dim l As Long, d As Long
- l = Len(str)
+Function GetSurname(ByVal str As String) As String
+ Dim d As Long
  d = InStr(1, str, " ")
  If Not d = 0 Then
-    DelLeft = Right(str, l - d)
+    GetSurname = Right(str, Len(str) - d)
  Else
-    DelLeft = str
+    GetSurname = str
 End If
  End Function
 
@@ -264,7 +271,7 @@ Sub SaveRawData()
         Dim ThisWksht As Worksheet
         
         Set ThisWksht = ActiveSheet
-        Set NewWkbk = Workbooks.Add
+        Set NewWkbk = Workbooks.add
         
         ThisWksht.Range("A1:H1000").Copy NewWkbk.Sheets(1).Range("A1")
         NewWkbk.Sheets(1).Range("A1:H1000").Select
