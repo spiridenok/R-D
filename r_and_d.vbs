@@ -1,12 +1,17 @@
-'Const pp_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P04.xlsx" 'eto glavnyj fail
-'Const internal_orders_file_path = "c:\Users\dspirydz\Documents\ola\Internal Orders in GmbH SAP.xlsx"
-'Const personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
-
-Const pp_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Employees in R&D\2013 - P04.xlsx"
-Const internal_orders_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\Internal Orders\Internal Orders in GmbH SAP.xlsx"
-Const personeel_nummers_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Definitieve R&D\P01\Personeelsnummers 2013 01 25.xlsx"
+Const WK_NUM = 4
 
 Sub r_d()
+    
+    If get_first_name(Application.UserName) = "Dzmitry" Then
+        pp_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P04.xlsx" 'eto glavnyj fail
+        internal_orders_file_path = "c:\Users\dspirydz\Documents\ola\Internal Orders in GmbH SAP.xlsx"
+        personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
+    Else
+        pp_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Employees in R&D\2013 - P04.xlsx"
+        internal_orders_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\Internal Orders\Internal Orders in GmbH SAP.xlsx"
+        personeel_nummers_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Definitieve R&D\P01\Personeelsnummers 2013 01 25.xlsx"
+    End If
+    
     Dim columnFormats(0 To 255) As Integer
     For i = 0 To 255
         columnFormats(i) = xlTextFormat
@@ -109,7 +114,6 @@ Sub r_d()
     Const YEAR = 1
     Const COST_CENTER = 2
     Const NAME = 3
-    Const WK_NUM = 4
     Const TOTAL_HOURS = 5
     Const PROJ_NUM = 5
     Const PROJ_DESC = 6
@@ -123,8 +127,6 @@ Sub r_d()
 
     Dim names As New Scripting.Dictionary
     Dim projects As New Scripting.Dictionary
-    
-    'Dim cnt As Integer
     
     Const TGT_COMP_CODE = 2
     Const TGT_COST_CENTER = 3
@@ -141,6 +143,16 @@ Sub r_d()
     Set conv = New ConversionsSheet
     Dim right_cost_center
     right_cost_center = False
+    
+    WeekSelectionDialog.FromWeekNum.SetFocus
+    WeekSelectionDialog.Show
+    
+    If WeekSelectionDialog.FromWeekNum.Value = "" Or WeekSelectionDialog.ToWeekNum.Value = "" Then GoTo CLEAN_UP
+    
+    from_week = CInt(WeekSelectionDialog.FromWeekNum.Value)
+    to_week = CInt(WeekSelectionDialog.ToWeekNum.Value)
+    
+    If from_week = 0 Or to_week = 0 Then GoTo CLEAN_UP
     
     For Each rw In ws.Rows
         If Not IsEmpty(rw.Cells(COST_CENTER)) Then
@@ -180,7 +192,7 @@ Sub r_d()
                             pp_data = pp(current_name)
                         Else 'no exact match, search in pieces
                             For Each pp_name In pp
-                                If GetSurname(pp_name) = GetSurname(current_name) Then
+                                If get_last_name(pp_name) = get_last_name(current_name) Then
                                     conv.add current_name, pp_name
                                     pp_data = pp(pp_name)
                                     current_name = pp_name
@@ -280,7 +292,7 @@ Sub r_d()
                             pp_data = pp(current_name)
                         Else 'no exact match, search in pieces
                             For Each pp_name In pp
-                                If GetSurname(pp_name) = GetSurname(current_name) Then
+                                If get_last_name(pp_name) = get_last_name(current_name) Then
                                     conv.add current_name, pp_name
                                     pp_data = pp(pp_name)
                                     current_name = pp_name
@@ -338,14 +350,15 @@ Sub r_d()
         
         If current_name <> "" Then
             If Not IsEmpty(rw.Cells(PROJ_NUM)) And Not IsEmpty(rw.Cells(PROJ_HOURS)) Then
-                Dim h As Integer
-                
-                h = CInt(rw.Cells(PROJ_HOURS))
-                proj = rw.Cells(PROJ_NUM)
-                If Not projects.Exists(proj) Then
-                    projects.add proj, h
-                Else
-                    projects(proj) = projects(proj) + h
+                week = get_week_num(ws, rw.Row)
+                If week >= from_week And week <= to_week Then
+                    hours = CInt(rw.Cells(PROJ_HOURS))
+                    proj = rw.Cells(PROJ_NUM)
+                    If Not projects.Exists(proj) Then
+                        projects.add proj, hours
+                    Else
+                        projects(proj) = projects(proj) + hours
+                    End If
                 End If
             End If
         End If
@@ -354,19 +367,36 @@ Sub r_d()
         If rw.Cells(YEAR) = "2012" Then Exit For
     Next rw
             
+CLEAN_UP:
     ActiveWindow.Close savechanges:=False 'close pers numbers
     ActiveWindow.Close savechanges:=False 'close book*
             
 End Sub
 
-Function GetSurname(ByVal str As String) As String
+Function get_week_num(ws As Worksheet, row_index As Integer) As Integer
+    wk_num_cell = ws.Cells(row_index, WK_NUM)
+    If Not IsEmpty(wk_num_cell) And Not InStr(1, wk_num_cell, "week") = 0 Then
+        get_week_num = CInt(Replace(wk_num_cell, "week: ", ""))
+    Else
+        get_week_num = get_week_num(ws, row_index - 1)
+    End If
+End Function
+
+Function get_last_name(ByVal str As String) As String
  Dim d As Long
  d = InStr(1, str, " ")
  If Not d = 0 Then
-    GetSurname = Right(str, Len(str) - d)
+    get_last_name = Right(str, Len(str) - d)
  Else
-    GetSurname = str
+    get_last_name = str
 End If
+ End Function
+Function get_first_name(ByVal str As String) As String
+ If Not InStr(1, str, " ") Then
+    get_first_name = Left(str, InStr(1, str, " ") - 1)
+ Else
+    get_first_name = str
+ End If
  End Function
 
 Sub SaveRawData()
