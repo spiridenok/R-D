@@ -1,4 +1,12 @@
 Const NAME_IDX = 5
+
+Sub copy_row(ByRef sht As Sheet3, ByRef rw As Range, hours As String)
+    rw.Copy
+    Set last_row = sht.Cells(sht.rows.Count, TGT_NAME).End(xlUp).Offset(1, -4)
+    sht.Paste last_row
+    If hours <> "" Then last_row.Cells(1, TGT_ASS_HOURS) = hours
+End Sub
+
 Sub write_diff(ByRef sht As Sheet3, ByRef org_r() As Range, ByRef new_r() As Range)
     Dim diff() As Range
     ReDim diff(1 To 1) As Range
@@ -7,22 +15,16 @@ Sub write_diff(ByRef sht As Sheet3, ByRef org_r() As Range, ByRef new_r() As Ran
         Dim project_found As Boolean
         project_found = False
         For n_r = 1 To UBound(new_r)
-            If new_r(n_r).Cells(7) = org_r(o_r).Cells(7) Then
-                If new_r(n_r).Cells(8) <> org_r(o_r).Cells(8) Then
-                    org_r(o_r).Copy
-                    Set last_row = sht.Cells(sht.rows.Count, 2).End(xlUp).Offset(1, -1)
-                    sht.Paste last_row
-                    last_row.Cells(1, 8) = CInt(new_r(n_r).Cells(8)) - CInt(org_r(o_r).Cells(8))
+            If new_r(n_r).Cells(TGT_PROJECT_NO) = org_r(o_r).Cells(TGT_PROJECT_NO) Then
+                If new_r(n_r).Cells(TGT_ASS_HOURS) <> org_r(o_r).Cells(TGT_ASS_HOURS) Then
+                    copy_row sht, org_r(o_r), CStr(CInt(new_r(n_r).Cells(TGT_ASS_HOURS)) - CInt(org_r(o_r).Cells(TGT_ASS_HOURS)))
                 End If
                 project_found = True
             End If
         Next n_r
         ' Project is not found at all in the new data - mark all project hours as removed
         If Not project_found Then
-            org_r(o_r).Copy
-            Set last_row = sht.Cells(sht.rows.Count, 2).End(xlUp).Offset(1, -1)
-            sht.Paste last_row
-            last_row.Cells(1, 8) = "-" & last_row.Cells(1, 8) '.Value.Insert 1, "-"
+            copy_row sht, org_r(o_r), "-" & org_r(o_r).Cells(1, TGT_ASS_HOURS)
         End If
     Next o_r
     
@@ -30,12 +32,10 @@ Sub write_diff(ByRef sht As Sheet3, ByRef org_r() As Range, ByRef new_r() As Ran
     For n_r = 1 To UBound(new_r)
         project_found = False
         For o_r = 1 To UBound(org_r)
-            If new_r(n_r).Cells(7) = org_r(o_r).Cells(7) Then project_found = True
+            If new_r(n_r).Cells(TGT_PROJECT_NO) = org_r(o_r).Cells(TGT_PROJECT_NO) Then project_found = True
         Next o_r
         If Not project_found Then
-            new_r(n_r).Copy
-            Set last_row = sht.Cells(sht.rows.Count, 2).End(xlUp).Offset(1, -1)
-            sht.Paste last_row
+            copy_row sht, new_r(n_r), ""
         End If
     Next n_r
 End Sub
@@ -61,16 +61,13 @@ Sub calc_delta()
     Dim filename As Variant
     filename = Application.GetOpenFilename("XLSM files (*.xlsm),*.xlsm", 1, "Open latest processed R&D data", "", False)
     ' If user clicks Cancel, stop.
-    If filename = False Then
-        Exit Sub
-    End If
+    If filename = False Then Exit Sub
     
     Set last_row = Sheets("R&D").Cells(Sheet1.rows.Count, 2).End(xlUp)
     Dim sheet_with_diff As Sheet3
     
     Set sheet_with_diff = Sheets("Diff")
     sheet_with_diff.Range("b3:H2000").Value = ""
-'    Set all_current_entries = Sheets("R&D").Cells("A1", "H" & last_row.Row)
     Dim org_entries As Range
     Set org_entries = Sheets("R&D").Range("A1", "H" & last_row.Row)
         
