@@ -23,9 +23,7 @@ Sub r_d()
     Dim filename As Variant
     filename = Application.GetOpenFilename("CVS files (*.csv),*.csv", 1, "Open", "", False)
     ' If user clicks Cancel, stop.
-    If filename = False Then
-        Exit Sub
-    End If
+    If filename = False Then Exit Sub
                 
     Dim pp_file As Workbook
     If Dir(pp_file_path) = "" Then
@@ -63,9 +61,7 @@ Sub r_d()
     For Each person In pp_file.Worksheets(1).rows
         Dim tmp As String
         tmp = person.Cells(2) + " "
-        If Not IsEmpty(person.Cells(3)) Then
-            tmp = tmp + person.Cells(3) + " "
-        End If
+        If Not IsEmpty(person.Cells(3)) Then tmp = tmp + person.Cells(3) + " "
         tmp = tmp + person.Cells(1)
         ' Add cost center, activity type (role) and employee number (in this particular order)
         ' TODO: this should be a new object of my own type
@@ -122,13 +118,12 @@ Sub r_d()
     Const PROJ_DESC = 6
     Const PROJ_HOURS = 7
     
-    ' 1st row is empty, 2nd contains the header
+    ' 1st row is empty, 2nd contains the header, so we start from the 3rd line
     i = 3
     Dim current_name As String
     Dim wk_n As String
     current_name = ""
 
-    'Dim names As New Scripting.Dictionary
     Dim projects As New Scripting.Dictionary
     
     Const TGT_COMP_CODE = 2
@@ -249,12 +244,7 @@ Sub r_d()
             If UBound(cost_center_num) > 0 Then
                 cost_center_num = Trim(cost_center_num(1))
                 ' empty cost center is a workaround for employees that are added later
-                If cost_center_num = "" Or cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002" Then
-'                If cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002" Then
-                    right_cost_center = True
-                Else
-                    right_cost_center = False
-                End If
+                right_cost_center = (cost_center_num = "" Or cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002")
             End If
         ElseIf Not IsEmpty(rw.Cells(name)) And Not IsNumeric(rw.Cells(name)) And right_cost_center Then
             If current_name <> "" Then
@@ -309,7 +299,6 @@ Sub r_d()
                         End If
                         ' Just find the first name that matches.
                         If pp_data = "" Then 'no exact match, search the closest name
-                            'Dim org_name As String
                             org_name = current_name
                             current_name = strSimLookup(current_name, pp.Keys, 0)
                             conv.add org_name, current_name
@@ -383,21 +372,22 @@ Function get_week_num(ws As Worksheet, row_index As Integer) As Integer
 End Function
 
 Function get_last_name(ByVal str As String) As String
- Dim d As Long
- d = InStr(1, str, " ")
- If Not d = 0 Then
-    get_last_name = Right(str, Len(str) - d)
- Else
-    get_last_name = str
-End If
- End Function
+    Dim d As Long
+    d = InStr(1, str, " ")
+    If Not d = 0 Then
+       get_last_name = Right(str, Len(str) - d)
+    Else
+       get_last_name = str
+    End If
+End Function
+
 Function get_first_name(ByVal str As String) As String
- If Not InStr(1, str, " ") Then
-    get_first_name = Left(str, InStr(1, str, " ") - 1)
- Else
-    get_first_name = str
- End If
- End Function
+    If Not InStr(1, str, " ") Then
+       get_first_name = Left(str, InStr(1, str, " ") - 1)
+    Else
+       get_first_name = str
+    End If
+End Function
 
 Sub SaveRawData()
     filesavename = Application.GetSaveAsFilename(fileFilter:="xlsx Files (*.xlsx), *.xlsx")
@@ -408,8 +398,8 @@ Sub SaveRawData()
         Set ThisWksht = ActiveSheet
         Set NewWkbk = Workbooks.add
         
-        ThisWksht.Range("A1:H1000").Copy NewWkbk.Sheets(1).Range("A1")
-        NewWkbk.Sheets(1).Range("A1:H1000").Select
+        ThisWksht.Range("A1:H2000").Copy NewWkbk.Sheets(1).Range("A1")
+        NewWkbk.Sheets(1).Range("A1:H2000").Select
         Selection.Columns.AutoFit
         Cells(1, 1).Select
         
