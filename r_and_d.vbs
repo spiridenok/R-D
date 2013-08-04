@@ -1,4 +1,7 @@
 Const WK_NUM = 4
+Public Const TGT_NAME = 5
+Public Const TGT_PROJECT_NO = 7
+Public Const TGT_ASS_HOURS = 8
 
 Sub r_d()
     
@@ -20,7 +23,7 @@ Sub r_d()
     Dim filename As Variant
     filename = Application.GetOpenFilename("CVS files (*.csv),*.csv", 1, "Open", "", False)
     ' If user clicks Cancel, stop.
-    If (filename = False) Then
+    If filename = False Then
         Exit Sub
     End If
                 
@@ -57,7 +60,7 @@ Sub r_d()
     End With
     
     Dim pp As New Scripting.Dictionary
-    For Each person In pp_file.Worksheets(1).Rows
+    For Each person In pp_file.Worksheets(1).rows
         Dim tmp As String
         tmp = person.Cells(2) + " "
         If Not IsEmpty(person.Cells(3)) Then
@@ -80,7 +83,7 @@ Sub r_d()
         Set int_orders_wb = Workbooks.Open(internal_orders_file_path, 0)
         Dim start_found As Boolean
         start_found = False
-        For Each ord In int_orders_wb.Worksheets(1).Rows
+        For Each ord In int_orders_wb.Worksheets(1).rows
             If ord.Cells(1) = "Order number" Then start_found = True
             If start_found Then
                 If IsEmpty(ord.Cells(1)) Then
@@ -100,7 +103,7 @@ Sub r_d()
     Else
         Dim pers_nums_wb As Workbook
         Set pers_nums_wb = Workbooks.Open(personeel_nummers_file_path, 0)
-        For Each pn In pers_nums_wb.Worksheets(1).Rows
+        For Each pn In pers_nums_wb.Worksheets(1).rows
             If IsEmpty(pn.Cells(1)) Then
                 Exit For
             Else
@@ -113,7 +116,7 @@ Sub r_d()
     
     Const YEAR = 1
     Const COST_CENTER = 2
-    Const NAME = 3
+    Const name = 3
     Const TOTAL_HOURS = 5
     Const PROJ_NUM = 5
     Const PROJ_DESC = 6
@@ -125,19 +128,16 @@ Sub r_d()
     Dim wk_n As String
     current_name = ""
 
-    Dim names As New Scripting.Dictionary
+    'Dim names As New Scripting.Dictionary
     Dim projects As New Scripting.Dictionary
     
     Const TGT_COMP_CODE = 2
     Const TGT_COST_CENTER = 3
     Const TGT_PERS_NO = 4
-    Const TGT_NAME = 5
     Const TGT_ACTIVITY_TYPE = 6
-    Const TGT_PROJECT_NO = 7
-    Const TGT_ASS_HOURS = 8
     
-    nxt.Range("b3", "h1000").ClearContents
-    nxt.Range("b3", "h1000").Font.ColorIndex = 1
+    nxt.Range("b3", "h2000").ClearContents
+    nxt.Range("b3", "h2000").Font.ColorIndex = 1
     
     Dim conv As ConversionsSheet
     Set conv = New ConversionsSheet
@@ -154,7 +154,7 @@ Sub r_d()
     
     If from_week = 0 Or to_week = 0 Then GoTo CLEAN_UP
     
-    For Each rw In ws.Rows
+    For Each rw In ws.rows
         If Not IsEmpty(rw.Cells(COST_CENTER)) Then
             If current_name <> "" Then
                 For Each proj In projects.Keys
@@ -256,7 +256,7 @@ Sub r_d()
                     right_cost_center = False
                 End If
             End If
-        ElseIf Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) And right_cost_center Then
+        ElseIf Not IsEmpty(rw.Cells(name)) And Not IsNumeric(rw.Cells(name)) And right_cost_center Then
             If current_name <> "" Then
                 For Each proj In projects.Keys
                     tmp = Trim(Split(Split(proj, "-")(0), " ")(0))
@@ -319,7 +319,7 @@ Sub r_d()
                         
                         'Dim split_name() As String
                         split_name = Split(current_name, " ")
-                        nxt.Cells(i, TGT_NAME) = split_name(UBound(split_name)) + ", "
+                        nxt.Cells(i, TGT_NAME) = split_name(UBound(split_name)) + ","
                         For cnt = 0 To UBound(split_name) - 1
                             nxt.Cells(i, TGT_NAME) = nxt.Cells(i, TGT_NAME) + " " + split_name(cnt)
                         Next
@@ -345,7 +345,7 @@ Sub r_d()
                 Next proj
             End If
             Set projects = Nothing
-            current_name = rw.Cells(NAME)
+            current_name = rw.Cells(name)
         End If
         
         If current_name <> "" Then
