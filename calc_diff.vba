@@ -1,4 +1,4 @@
-Const NAME_IDX = 5
+Const NAME_IDX = 5 'Test
 
 Sub copy_row(ByRef sht As Sheet3, ByRef rw As Range, hours As String)
     rw.Copy
