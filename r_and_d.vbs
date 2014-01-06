@@ -23,9 +23,7 @@ Sub r_d()
     Dim filename As Variant
     filename = Application.GetOpenFilename("CVS files (*.csv),*.csv", 1, "Open", "", False)
     ' If user clicks Cancel, stop.
-    If (filename = False) Then
-        Exit Sub
-    End If
+    If filename = False Then Exit Sub
                 
     Dim pp_file As Workbook
     If Dir(pp_file_path) = "" Then
@@ -64,15 +62,13 @@ Sub r_d()
     For Each person In pp_file.Worksheets(1).Rows
         Dim tmp As String
         tmp = person.Cells(2) + " "
-        If Not IsEmpty(person.Cells(3)) Then
-            tmp = tmp + person.Cells(3) + " "
-        End If
+        If Not IsEmpty(person.Cells(3)) Then tmp = tmp + person.Cells(3) + " "
         tmp = tmp + person.Cells(1)
         ' Add cost center, activity type (role) and employee number (in this particular order)
         ' TODO: this should be a new object of my own type
         If Trim(tmp) <> "" Then pp.add tmp, CStr(person.Cells(4)) + "," + person.Cells(7) + "," + CStr(person.Cells(5))
         If Trim(tmp) <> "" And IsNumeric(person.Cells(5)) Then pers_nums.add CStr(person.Cells(5)), CStr(person.Cells(9))
-        If person.Row > 1000 Then Exit For
+        If person.Row > 2000 Then Exit For
     Next person
     pp_file.Close
     
@@ -121,7 +117,7 @@ Sub r_d()
     Const PROJ_DESC = 6
     Const PROJ_HOURS = 7
     
-    ' 1st row is empty, 2nd contains the header
+    ' 1st row is empty, 2nd contains the header, so we start from the 3rd line
     i = 3
     Dim current_name As String
     Dim wk_n As String
@@ -135,8 +131,8 @@ Sub r_d()
     Const TGT_PERS_NO = 4
     Const TGT_ACTIVITY_TYPE = 6
     
-    nxt.Range("b3", "h1000").ClearContents
-    nxt.Range("b3", "h1000").Font.ColorIndex = 1
+    nxt.Range("b3", "h2000").ClearContents
+    nxt.Range("b3", "h2000").Font.ColorIndex = 1
     
     Dim conv As ConversionsSheet
     Set conv = New ConversionsSheet
@@ -241,12 +237,7 @@ Sub r_d()
             If UBound(cost_center_num) > 0 Then
                 cost_center_num = Trim(cost_center_num(1))
                 ' empty cost center is a workaround for employees that are added later
-                If cost_center_num = "" Or cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002" Then
-'                If cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002" Then
-                    right_cost_center = True
-                Else
-                    right_cost_center = False
-                End If
+                right_cost_center = (cost_center_num = "" Or cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002")
             End If
         ElseIf Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) And right_cost_center Then
             If current_name <> "" Then
@@ -392,8 +383,8 @@ Sub SaveRawData()
         Set ThisWksht = ActiveSheet
         Set NewWkbk = Workbooks.add
         
-        ThisWksht.Range("A1:H1000").Copy NewWkbk.Sheets(1).Range("A1")
-        NewWkbk.Sheets(1).Range("A1:H1000").Select
+        ThisWksht.Range("A1:H2000").Copy NewWkbk.Sheets(1).Range("A1")
+        NewWkbk.Sheets(1).Range("A1:H2000").Select
         Selection.Columns.AutoFit
         Cells(1, 1).Select
         
