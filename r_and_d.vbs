@@ -6,13 +6,13 @@ Public Const TGT_ASS_HOURS = 8
 Sub r_d()
     
     If get_first_name(Application.UserName) = "Dzmitry" Then
-        pp_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P04.xlsx" 'eto glavnyj fail
+        pp_file_path = "c:\Users\dspirydz\Documents\ola\2013 - P12.xlsx" 'eto glavnyj fail
         internal_orders_file_path = "c:\Users\dspirydz\Documents\ola\Internal Orders in GmbH SAP.xlsx"
-        personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
+        'personeel_nummers_file_path = "c:\Users\dspirydz\Documents\ola\Personeelsnummers 2013 01 25.xlsx"
     Else
         pp_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Employees in R&D\2013 - P04.xlsx"
         internal_orders_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\Internal Orders\Internal Orders in GmbH SAP.xlsx"
-        personeel_nummers_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Definitieve R&D\P01\Personeelsnummers 2013 01 25.xlsx"
+        'personeel_nummers_file_path = "K:\Finance SiTel\Accounting & Control\2013\Accounting cycle\R&D Accounting\Definitieve R&D\P01\Personeelsnummers 2013 01 25.xlsx"
     End If
     
     Dim columnFormats(0 To 255) As Integer
@@ -23,7 +23,9 @@ Sub r_d()
     Dim filename As Variant
     filename = Application.GetOpenFilename("CVS files (*.csv),*.csv", 1, "Open", "", False)
     ' If user clicks Cancel, stop.
-    If filename = False Then Exit Sub
+    If (filename = False) Then
+        Exit Sub
+    End If
                 
     Dim pp_file As Workbook
     If Dir(pp_file_path) = "" Then
@@ -58,14 +60,18 @@ Sub r_d()
     End With
     
     Dim pp As New Scripting.Dictionary
-    For Each person In pp_file.Worksheets(1).rows
+    Dim pers_nums As New Scripting.Dictionary
+    For Each person In pp_file.Worksheets(1).Rows
         Dim tmp As String
         tmp = person.Cells(2) + " "
-        If Not IsEmpty(person.Cells(3)) Then tmp = tmp + person.Cells(3) + " "
+        If Not IsEmpty(person.Cells(3)) Then
+            tmp = tmp + person.Cells(3) + " "
+        End If
         tmp = tmp + person.Cells(1)
         ' Add cost center, activity type (role) and employee number (in this particular order)
         ' TODO: this should be a new object of my own type
         If Trim(tmp) <> "" Then pp.add tmp, CStr(person.Cells(4)) + "," + person.Cells(7) + "," + CStr(person.Cells(5))
+        If Trim(tmp) <> "" And IsNumeric(person.Cells(5)) Then pers_nums.add CStr(person.Cells(5)), CStr(person.Cells(9))
         If person.Row > 1000 Then Exit For
     Next person
     pp_file.Close
@@ -79,7 +85,7 @@ Sub r_d()
         Set int_orders_wb = Workbooks.Open(internal_orders_file_path, 0)
         Dim start_found As Boolean
         start_found = False
-        For Each ord In int_orders_wb.Worksheets(1).rows
+        For Each ord In int_orders_wb.Worksheets(1).Rows
             If ord.Cells(1) = "Order number" Then start_found = True
             If start_found Then
                 If IsEmpty(ord.Cells(1)) Then
@@ -92,38 +98,36 @@ Sub r_d()
         int_orders_wb.Close
     End If
     
-    Dim pers_nums As New Scripting.Dictionary
-    If Dir(personeel_nummers_file_path) = "" Then
-        MsgBox "File with personeelsnummers is not found! Company code will not be filled in!"
-        Set pers_nums = Nothing
-    Else
-        Dim pers_nums_wb As Workbook
-        Set pers_nums_wb = Workbooks.Open(personeel_nummers_file_path, 0)
-        For Each pn In pers_nums_wb.Worksheets(1).rows
-            If IsEmpty(pn.Cells(1)) Then
-                Exit For
-            Else
-                pers_nums.add pn.Cells(4), pn.Cells(1)
-            End If
-        Next pn
-        'For some reason no need to close this - it will close another already opened worksheet.
-        'pers_nums_wb.Close
-    End If
+'    If Dir(personeel_nummers_file_path) = "" Then
+'        MsgBox "File with personeelsnummers is not found! Company code will not be filled in!"
+'        Set pers_nums = Nothing
+'    Else
+'        Dim pers_nums_wb As Workbook
+'        Set pers_nums_wb = Workbooks.Open(personeel_nummers_file_path, 0)
+'        For Each pn In pers_nums_wb.Worksheets(1).Rows
+'            If IsEmpty(pn.Cells(1)) Then
+'                Exit For
+'            Else
+'                pers_nums.add pn.Cells(4), pn.Cells(1)
+'            End If
+'        Next pn
+'    End If
     
     Const YEAR = 1
     Const COST_CENTER = 2
-    Const name = 3
+    Const NAME = 3
     Const TOTAL_HOURS = 5
     Const PROJ_NUM = 5
     Const PROJ_DESC = 6
     Const PROJ_HOURS = 7
     
-    ' 1st row is empty, 2nd contains the header, so we start from the 3rd line
+    ' 1st row is empty, 2nd contains the header
     i = 3
     Dim current_name As String
     Dim wk_n As String
     current_name = ""
 
+    Dim names As New Scripting.Dictionary
     Dim projects As New Scripting.Dictionary
     
     Const TGT_COMP_CODE = 2
@@ -131,8 +135,8 @@ Sub r_d()
     Const TGT_PERS_NO = 4
     Const TGT_ACTIVITY_TYPE = 6
     
-    nxt.Range("b3", "h2000").ClearContents
-    nxt.Range("b3", "h2000").Font.ColorIndex = 1
+    nxt.Range("b3", "h1000").ClearContents
+    nxt.Range("b3", "h1000").Font.ColorIndex = 1
     
     Dim conv As ConversionsSheet
     Set conv = New ConversionsSheet
@@ -149,7 +153,7 @@ Sub r_d()
     
     If from_week = 0 Or to_week = 0 Then GoTo CLEAN_UP
     
-    For Each rw In ws.rows
+    For Each rw In ws.Rows
         If Not IsEmpty(rw.Cells(COST_CENTER)) Then
             If current_name <> "" Then
                 For Each proj In projects.Keys
@@ -220,19 +224,12 @@ Sub r_d()
                         Next
                         
                         If Len(pp_data) > 0 Then
-                            If pers_nums Is Nothing Then
-                                a = ""
-                            Else
-                                For Each k In pers_nums.Keys
-                                    If k = CLng(Split(pp_data, ",")(2)) Then a = pers_nums(k)
-                                Next k
-                            End If
                         
                             nxt.Cells(i, TGT_ASS_HOURS) = projects(proj)
                             nxt.Cells(i, TGT_COST_CENTER) = CLng(Split(pp_data, ",")(0))
                             nxt.Cells(i, TGT_ACTIVITY_TYPE) = Split(pp_data, ",")(1)
                             nxt.Cells(i, TGT_PERS_NO) = CLng(Split(pp_data, ",")(2))
-                            nxt.Cells(i, TGT_COMP_CODE) = a
+                            If pers_nums.Exists(Split(pp_data, ",")(2)) Then nxt.Cells(i, TGT_COMP_CODE) = pers_nums(Split(pp_data, ",")(2))
                         End If
                         
                         i = i + 1
@@ -244,9 +241,14 @@ Sub r_d()
             If UBound(cost_center_num) > 0 Then
                 cost_center_num = Trim(cost_center_num(1))
                 ' empty cost center is a workaround for employees that are added later
-                right_cost_center = (cost_center_num = "" Or cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002")
+                If cost_center_num = "" Or cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002" Then
+'                If cost_center_num = "310001" Or cost_center_num = "320001" Or cost_center_num = "320002" Then
+                    right_cost_center = True
+                Else
+                    right_cost_center = False
+                End If
             End If
-        ElseIf Not IsEmpty(rw.Cells(name)) And Not IsNumeric(rw.Cells(name)) And right_cost_center Then
+        ElseIf Not IsEmpty(rw.Cells(NAME)) And Not IsNumeric(rw.Cells(NAME)) And right_cost_center Then
             If current_name <> "" Then
                 For Each proj In projects.Keys
                     tmp = Trim(Split(Split(proj, "-")(0), " ")(0))
@@ -299,6 +301,7 @@ Sub r_d()
                         End If
                         ' Just find the first name that matches.
                         If pp_data = "" Then 'no exact match, search the closest name
+                            'Dim org_name As String
                             org_name = current_name
                             current_name = strSimLookup(current_name, pp.Keys, 0)
                             conv.add org_name, current_name
@@ -314,19 +317,11 @@ Sub r_d()
                         Next
                         
                         If Len(pp_data) > 0 Then
-                            If pers_nums Is Nothing Then
-                                a = ""
-                            Else
-                                For Each k In pers_nums.Keys
-                                    If k = CLng(Split(pp_data, ",")(2)) Then a = pers_nums(k)
-                                Next k
-                            End If
-                        
                             nxt.Cells(i, TGT_ASS_HOURS) = projects(proj)
                             nxt.Cells(i, TGT_COST_CENTER) = CLng(Split(pp_data, ",")(0))
                             nxt.Cells(i, TGT_ACTIVITY_TYPE) = Split(pp_data, ",")(1)
                             nxt.Cells(i, TGT_PERS_NO) = CLng(Split(pp_data, ",")(2))
-                            nxt.Cells(i, TGT_COMP_CODE) = a
+                            If pers_nums.Exists(Split(pp_data, ",")(2)) Then nxt.Cells(i, TGT_COMP_CODE) = pers_nums(Split(pp_data, ",")(2))
                         End If
                         
                         i = i + 1
@@ -334,7 +329,7 @@ Sub r_d()
                 Next proj
             End If
             Set projects = Nothing
-            current_name = rw.Cells(name)
+            current_name = rw.Cells(NAME)
         End If
         
         If current_name <> "" Then
@@ -358,7 +353,7 @@ Sub r_d()
             
 CLEAN_UP:
     ActiveWindow.Close savechanges:=False 'close pers numbers
-    ActiveWindow.Close savechanges:=False 'close book*
+    'ActiveWindow.Close savechanges:=False 'close book*
             
 End Sub
 
@@ -372,22 +367,21 @@ Function get_week_num(ws As Worksheet, row_index As Integer) As Integer
 End Function
 
 Function get_last_name(ByVal str As String) As String
-    Dim d As Long
-    d = InStr(1, str, " ")
-    If Not d = 0 Then
-       get_last_name = Right(str, Len(str) - d)
-    Else
-       get_last_name = str
-    End If
-End Function
-
+ Dim d As Long
+ d = InStr(1, str, " ")
+ If Not d = 0 Then
+    get_last_name = Right(str, Len(str) - d)
+ Else
+    get_last_name = str
+End If
+ End Function
 Function get_first_name(ByVal str As String) As String
-    If Not InStr(1, str, " ") Then
-       get_first_name = Left(str, InStr(1, str, " ") - 1)
-    Else
-       get_first_name = str
-    End If
-End Function
+ If Not InStr(1, str, " ") Then
+    get_first_name = Left(str, InStr(1, str, " ") - 1)
+ Else
+    get_first_name = str
+ End If
+ End Function
 
 Sub SaveRawData()
     filesavename = Application.GetSaveAsFilename(fileFilter:="xlsx Files (*.xlsx), *.xlsx")
@@ -398,8 +392,8 @@ Sub SaveRawData()
         Set ThisWksht = ActiveSheet
         Set NewWkbk = Workbooks.add
         
-        ThisWksht.Range("A1:H2000").Copy NewWkbk.Sheets(1).Range("A1")
-        NewWkbk.Sheets(1).Range("A1:H2000").Select
+        ThisWksht.Range("A1:H1000").Copy NewWkbk.Sheets(1).Range("A1")
+        NewWkbk.Sheets(1).Range("A1:H1000").Select
         Selection.Columns.AutoFit
         Cells(1, 1).Select
         
